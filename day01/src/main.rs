@@ -1,20 +1,33 @@
 fn main() {
-    let lines: Vec<Option<u32>> = include_str!("input.txt")
+    let lines = include_str!("input.txt")
         .lines()
-        .map(|l| l.parse().ok())
-        .collect();
+        .map(|l| l.parse::<u32>().ok());
 
-    let mut calorie_counts: Vec<u32> = lines
-        .split(Option::is_none)
-        .map(|ns| ns.iter().flatten().sum())
-        .collect();
+    let mut first = 0;
+    let mut second = 0;
+    let mut third = 0;
+    let mut calorie_total = 0;
 
-    calorie_counts.sort_unstable();
-    calorie_counts.reverse();
+    for line in lines {
+        match line {
+            Some(calorie_count) => calorie_total += calorie_count,
+            None => {
+                if calorie_total > first {
+                    third = second;
+                    second = first;
+                    first = calorie_total;
+                } else if calorie_total > second {
+                    third = second;
+                    second = calorie_total;
+                } else if calorie_total > third {
+                    third = calorie_total;
+                }
 
-    println!("Part 1: {}", calorie_counts[0]);
-    println!(
-        "Part 2: {}",
-        calorie_counts.into_iter().take(3).sum::<u32>()
-    );
+                calorie_total = 0;
+            }
+        }
+    }
+
+    println!("Part 1: {}", first);
+    println!("Part 2: {}", first + second + third);
 }
