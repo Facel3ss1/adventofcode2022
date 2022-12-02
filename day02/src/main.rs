@@ -1,8 +1,9 @@
+#[repr(u32)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Shape {
-    Rock,
-    Paper,
-    Scissors,
+    Rock = 1,
+    Paper = 2,
+    Scissors = 3,
 }
 
 impl Shape {
@@ -19,14 +20,6 @@ impl Shape {
             Shape::Rock => Shape::Paper,
             Shape::Paper => Shape::Scissors,
             Shape::Scissors => Shape::Rock,
-        }
-    }
-
-    fn score(self) -> u32 {
-        match self {
-            Shape::Rock => 1,
-            Shape::Paper => 2,
-            Shape::Scissors => 3,
         }
     }
 }
@@ -61,7 +54,7 @@ fn score(is_part1: bool) -> u32 {
             }
         };
 
-        score += me.score();
+        score += me as u32;
         if me.wins_against() == opponent {
             score += 6;
         } else if me == opponent {
