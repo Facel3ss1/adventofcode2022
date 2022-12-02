@@ -22,10 +22,6 @@ impl Shape {
         }
     }
 
-    fn does_beat(self, other: Shape) -> bool {
-        self.wins_against() == other
-    }
-
     fn score(self) -> u32 {
         match self {
             Shape::Rock => 1,
@@ -41,10 +37,8 @@ fn score(is_part1: bool) -> u32 {
 
     for line in lines {
         let mut letters = line.split_whitespace();
-        let first_letter = letters.next().unwrap();
-        let second_letter = letters.next().unwrap();
 
-        let opponent = match first_letter {
+        let opponent = match letters.next().unwrap() {
             "A" => Shape::Rock,
             "B" => Shape::Paper,
             "C" => Shape::Scissors,
@@ -52,14 +46,14 @@ fn score(is_part1: bool) -> u32 {
         };
 
         let me = if is_part1 {
-            match second_letter {
+            match letters.next().unwrap() {
                 "X" => Shape::Rock,
                 "Y" => Shape::Paper,
                 "Z" => Shape::Scissors,
                 _ => panic!("Unrecognised letter"),
             }
         } else {
-            match second_letter {
+            match letters.next().unwrap() {
                 "X" => opponent.wins_against(),
                 "Y" => opponent,
                 "Z" => opponent.loses_against(),
@@ -68,7 +62,7 @@ fn score(is_part1: bool) -> u32 {
         };
 
         score += me.score();
-        if me.does_beat(opponent) {
+        if me.wins_against() == opponent {
             score += 6;
         } else if me == opponent {
             score += 3;
