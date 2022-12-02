@@ -35,64 +35,42 @@ impl Shape {
     }
 }
 
-struct Round {
-    me: Shape,
-    opponent: Shape,
-}
-
-impl Round {
-    fn parse_part1(line: &str) -> Self {
-        let mut letters = line.split_whitespace();
-
-        let opponent = match letters.next().unwrap() {
-            "A" => Shape::Rock,
-            "B" => Shape::Paper,
-            "C" => Shape::Scissors,
-            _ => panic!("Unrecognised letter"),
-        };
-
-        let me = match letters.next().unwrap() {
-            "X" => Shape::Rock,
-            "Y" => Shape::Paper,
-            "Z" => Shape::Scissors,
-            _ => panic!("Unrecognised letter"),
-        };
-
-        Self { me, opponent }
-    }
-
-    fn parse_part2(line: &str) -> Self {
-        let mut letters = line.split_whitespace();
-
-        let opponent = match letters.next().unwrap() {
-            "A" => Shape::Rock,
-            "B" => Shape::Paper,
-            "C" => Shape::Scissors,
-            _ => panic!("Unrecognised letter"),
-        };
-
-        let me = match letters.next().unwrap() {
-            "X" => opponent.wins_against(),
-            "Y" => opponent,
-            "Z" => opponent.loses_against(),
-            _ => panic!("Unrecognised letter"),
-        };
-
-        Self { me, opponent }
-    }
-}
-
-fn score(parser: impl Fn(&str) -> Round) -> u32 {
+fn score(is_part1: bool) -> u32 {
     let lines = include_str!("input.txt").lines();
     let mut score = 0;
 
     for line in lines {
-        let round = parser(line);
-        score += round.me.score();
+        let mut letters = line.split_whitespace();
+        let first_letter = letters.next().unwrap();
+        let second_letter = letters.next().unwrap();
 
-        if round.me.does_beat(round.opponent) {
+        let opponent = match first_letter {
+            "A" => Shape::Rock,
+            "B" => Shape::Paper,
+            "C" => Shape::Scissors,
+            _ => panic!("Unrecognised letter"),
+        };
+
+        let me = if is_part1 {
+            match second_letter {
+                "X" => Shape::Rock,
+                "Y" => Shape::Paper,
+                "Z" => Shape::Scissors,
+                _ => panic!("Unrecognised letter"),
+            }
+        } else {
+            match second_letter {
+                "X" => opponent.wins_against(),
+                "Y" => opponent,
+                "Z" => opponent.loses_against(),
+                _ => panic!("Unrecognised letter"),
+            }
+        };
+
+        score += me.score();
+        if me.does_beat(opponent) {
             score += 6;
-        } else if round.me == round.opponent {
+        } else if me == opponent {
             score += 3;
         }
     }
@@ -101,6 +79,6 @@ fn score(parser: impl Fn(&str) -> Round) -> u32 {
 }
 
 fn main() {
-    println!("Part 1: {}", score(Round::parse_part1));
-    println!("Part 2: {}", score(Round::parse_part2));
+    println!("Part 1: {}", score(true));
+    println!("Part 2: {}", score(false));
 }
