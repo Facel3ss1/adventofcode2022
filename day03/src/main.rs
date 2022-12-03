@@ -35,17 +35,14 @@ where
 }
 
 fn main() {
-    let lines = include_str!("input.txt").lines();
+    let lines = include_str!("input.txt").lines().map(str::as_bytes);
 
     let part1_groups = lines.clone().map(|line| {
-        let chars = line.as_bytes();
-        let first_half = &chars[..line.len() / 2];
-        let second_half = &chars[line.len() / 2..];
-
+        let (first_half, second_half) = line.split_at(line.len() / 2);
         [first_half, second_half].into_iter()
     });
 
-    let part2_groups = lines.map(str::as_bytes).chunks(3);
+    let part2_groups = lines.chunks(3);
 
     println!("Part 1: {}", sum_groups(part1_groups));
     println!("Part 2: {}", sum_groups(part2_groups.into_iter()));
