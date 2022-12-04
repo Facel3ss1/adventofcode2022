@@ -1,6 +1,6 @@
 use std::ops::RangeInclusive;
 
-fn parse_range(input: &str) -> RangeInclusive<u32> {
+fn parse_range(input: &str) -> RangeInclusive<u16> {
     let (start, end) = input
         .split_once('-')
         .map(|(start, end)| (start.parse().unwrap(), end.parse().unwrap()))
@@ -9,14 +9,15 @@ fn parse_range(input: &str) -> RangeInclusive<u32> {
     start..=end
 }
 
-fn range_contains(first: RangeInclusive<u32>, second: RangeInclusive<u32>) -> bool {
-    let first_contains_second = first.start() <= second.start() && first.end() >= second.end();
-    let second_contains_first = second.start() <= first.start() && second.end() >= first.end();
+fn range_contains(mut first: RangeInclusive<u16>, mut second: RangeInclusive<u16>) -> bool {
+    if second.len() > first.len() {
+        std::mem::swap(&mut first, &mut second);
+    }
 
-    first_contains_second || second_contains_first
+    first.start() <= second.start() && first.end() >= second.end()
 }
 
-fn range_overlaps(first: RangeInclusive<u32>, second: RangeInclusive<u32>) -> bool {
+fn range_overlaps(first: RangeInclusive<u16>, second: RangeInclusive<u16>) -> bool {
     let first_overlaps_second = second.contains(first.start()) || second.contains(first.end());
     let second_overlaps_first = first.contains(second.start()) || first.contains(second.end());
 
