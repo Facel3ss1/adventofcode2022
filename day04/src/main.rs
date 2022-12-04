@@ -16,17 +16,29 @@ fn range_contains(first: RangeInclusive<u32>, second: RangeInclusive<u32>) -> bo
     first_contains_second || second_contains_first
 }
 
-fn main() {
-    let lines = include_str!("input.txt").lines();
+fn range_overlaps(first: RangeInclusive<u32>, second: RangeInclusive<u32>) -> bool {
+    let first_overlaps_second = second.contains(first.start()) || second.contains(first.end());
+    let second_overlaps_first = first.contains(second.start()) || first.contains(second.end());
 
-    let count = lines
-        .map(|line| {
-            line.split_once(',')
-                .map(|(first, second)| (parse_range(first), parse_range(second)))
-                .unwrap()
-        })
+    first_overlaps_second || second_overlaps_first
+}
+
+fn main() {
+    let ranges = include_str!("input.txt").lines().map(|line| {
+        line.split_once(',')
+            .map(|(first, second)| (parse_range(first), parse_range(second)))
+            .unwrap()
+    });
+
+    let part1_count = ranges
+        .clone()
         .filter(|(first, second)| range_contains(first.clone(), second.clone()))
         .count();
 
-    println!("{count}");
+    let part2_count = ranges
+        .filter(|(first, second)| range_overlaps(first.clone(), second.clone()))
+        .count();
+
+    println!("Part 1: {part1_count}");
+    println!("Part 2: {part2_count}");
 }
