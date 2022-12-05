@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Crates {
     stacks: [Vec<char>; 9],
 }
@@ -28,11 +28,17 @@ impl FromStr for Crates {
 }
 
 impl Crates {
-    fn apply_step(&mut self, step: Step) {
+    fn apply_step_part1(&mut self, step: &Step) {
         for _ in 0..step.quantity {
             let crate_char = self.stacks[step.from].pop().unwrap();
             self.stacks[step.to].push(crate_char);
         }
+    }
+
+    fn apply_step_part2(&mut self, step: &Step) {
+        let from_stack = &mut self.stacks[step.from];
+        let crates = from_stack.split_off(from_stack.len() - step.quantity);
+        self.stacks[step.to].extend(crates.into_iter());
     }
 
     fn top_crates(&self) -> String {
@@ -64,12 +70,15 @@ impl FromStr for Step {
 
 fn main() {
     let (crates, steps) = include_str!("input.txt").split_once("\n\n").unwrap();
-    let mut crates = crates.parse::<Crates>().unwrap();
+    let mut crates_part1 = crates.parse::<Crates>().unwrap();
+    let mut crates_part2 = crates_part1.clone();
 
     for step in steps.lines() {
         let step = step.parse::<Step>().unwrap();
-        crates.apply_step(step);
+        crates_part1.apply_step_part1(&step);
+        crates_part2.apply_step_part2(&step);
     }
 
-    println!("{}", crates.top_crates());
+    println!("Part 1: {}", crates_part1.top_crates());
+    println!("Part 2: {}", crates_part2.top_crates());
 }
