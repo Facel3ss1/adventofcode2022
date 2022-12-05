@@ -13,14 +13,14 @@ impl FromStr for Crates {
         let mut stacks: [Vec<char>; 9] = Default::default();
 
         for line in lines {
-            (0..9).for_each(|i| {
+            for (i, stack) in stacks.iter_mut().enumerate() {
                 // 0-9 -> 1,5,9...
                 let char_index = (i * 4) + 1;
                 let crate_char = line[char_index];
                 if crate_char != b' ' {
-                    stacks[i].push(crate_char as char);
+                    stack.push(crate_char as char);
                 }
-            });
+            }
         }
 
         Ok(Self { stacks })
