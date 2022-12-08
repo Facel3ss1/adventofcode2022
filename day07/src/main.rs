@@ -1,21 +1,12 @@
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct FileSystem {
     root_directory: Directory,
     directories: Vec<Directory>,
-    files: Vec<File>,
 }
 
 impl FileSystem {
-    fn new() -> Self {
-        Self {
-            root_directory: Directory::new(),
-            directories: Vec::new(),
-            files: Vec::new(),
-        }
-    }
-
     fn get_directory(&self, directory_index: Option<DirectoryIndex>) -> &Directory {
         match directory_index {
             None => &self.root_directory,
@@ -31,29 +22,12 @@ impl FileSystem {
     }
 }
 
-#[derive(Debug)]
-struct FileIndex(usize);
 #[derive(Debug, Clone, Copy)]
 struct DirectoryIndex(usize);
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Directory {
     directories: HashMap<String, DirectoryIndex>,
-    files: Vec<FileIndex>,
-}
-
-impl Directory {
-    fn new() -> Self {
-        Self {
-            directories: HashMap::new(),
-            files: Vec::new(),
-        }
-    }
-}
-
-#[derive(Debug)]
-struct File {
-    name: String,
     size: usize,
 }
 
@@ -67,7 +41,7 @@ enum CdArg {
 enum Line {
     Cd(CdArg),
     Directory(String),
-    File(usize, String),
+    File(usize),
 }
 
 fn parse_lines(input: &str) -> Vec<Line> {
@@ -95,9 +69,7 @@ fn parse_lines(input: &str) -> Vec<Line> {
             Line::Directory(parts.next().unwrap().to_string())
         } else {
             let size = first_part.parse().unwrap();
-            let name = parts.next().unwrap().to_string();
-
-            Line::File(size, name)
+            Line::File(size)
         };
 
         lines.push(line);
@@ -107,41 +79,36 @@ fn parse_lines(input: &str) -> Vec<Line> {
 }
 
 fn parse_commands(lines: Vec<Line>) -> FileSystem {
-    let mut filesystem = FileSystem::new();
+    let mut filesystem = FileSystem::default();
     let mut directory_stack: Vec<DirectoryIndex> = Vec::new();
-    let mut current_directory: Option<DirectoryIndex> = None;
 
     for line in lines {
         match line {
-            Line::Cd(arg) => {
-                match arg {
-                    CdArg::Parent => {
-                        directory_stack.pop();
-                    }
-                    CdArg::Named(dir) => {
-                        let directory_index = filesystem
-                            .get_directory(current_directory)
-                            .directories
-                            .get(&dir)
-                            .expect("directory not found");
-                        directory_stack.push(*directory_index);
-                    }
+            Line::Cd(arg) => match arg {
+                CdArg::Parent => {
+                    directory_stack.pop();
                 }
-                current_directory = directory_stack.last().copied();
-            }
-            Line::File(size, name) => {
-                let file_index = FileIndex(filesystem.files.len());
-                filesystem.files.push(File { size, name });
-                filesystem
-                    .get_directory_mut(current_directory)
-                    .files
-                    .push(file_index);
+                CdArg::Named(dir) => {
+                    let directory_index = filesystem
+                        .get_directory(directory_stack.last().copied())
+                        .directories
+                        .get(&dir)
+                        .expect("directory not found");
+                    directory_stack.push(*directory_index);
+                }
+            },
+            Line::File(size) => {
+                filesystem.get_directory_mut(None).size += size;
+
+                for directory_index in directory_stack.iter().copied() {
+                    filesystem.get_directory_mut(Some(directory_index)).size += size
+                }
             }
             Line::Directory(name) => {
                 let directory_index = DirectoryIndex(filesystem.directories.len());
-                filesystem.directories.push(Directory::new());
+                filesystem.directories.push(Directory::default());
                 filesystem
-                    .get_directory_mut(current_directory)
+                    .get_directory_mut(directory_stack.last().copied())
                     .directories
                     .insert(name, directory_index);
             }
@@ -154,35 +121,48 @@ fn parse_commands(lines: Vec<Line>) -> FileSystem {
 fn traverse_directories(
     filesystem: &FileSystem,
     directory_index: Option<DirectoryIndex>,
+    used_space: usize,
     part1_sum: &mut usize,
-) -> usize {
-    let mut sum = 0;
+    part2_size: &mut usize,
+) {
     let current_directory = filesystem.get_directory(directory_index);
+    let directory_size = current_directory.size;
 
-    for file_index in current_directory.files.iter() {
-        sum += filesystem.files[file_index.0].size;
+    if directory_size <= 100_000 {
+        *part1_sum += directory_size;
     }
 
-    for directory_index in current_directory.directories.values().copied() {
-        sum += traverse_directories(filesystem, Some(directory_index), part1_sum);
+    if (used_space - directory_size) + 30_000_000 <= 70_000_000 && directory_size < *part2_size {
+        *part2_size = directory_size;
     }
 
-    if sum <= 100_000 {
-        *part1_sum += sum;
+    for index in current_directory.directories.values().copied() {
+        traverse_directories(filesystem, Some(index), used_space, part1_sum, part2_size);
     }
-
-    sum
 }
 
-fn part1(filesystem: &FileSystem) -> usize {
-    let mut sum = 0;
-    traverse_directories(filesystem, None, &mut sum);
-    sum
+fn solve(filesystem: &FileSystem) -> (usize, usize) {
+    let used_space = filesystem.get_directory(None).size;
+
+    let mut part1_sum = 0;
+    let mut part2_size = used_space;
+
+    traverse_directories(
+        filesystem,
+        None,
+        used_space,
+        &mut part1_sum,
+        &mut part2_size,
+    );
+
+    (part1_sum, part2_size)
 }
 
 fn main() {
     let lines = parse_lines(include_str!("input.txt"));
     let filesystem = parse_commands(lines);
 
-    println!("Part 1: {}", part1(&filesystem));
+    let (part1, part2) = solve(&filesystem);
+    println!("Part 1: {part1}");
+    println!("Part 2: {part2}");
 }
