@@ -27,24 +27,24 @@ struct DirectoryIndex(usize);
 
 #[derive(Debug, Default)]
 struct Directory {
-    directories: HashMap<String, DirectoryIndex>,
+    directories: HashMap<&'static str, DirectoryIndex>,
     size: usize,
 }
 
 #[derive(Debug)]
 enum CdArg {
     Parent,
-    Named(String),
+    Named(&'static str),
 }
 
 #[derive(Debug)]
 enum Line {
     Cd(CdArg),
-    Directory(String),
+    Directory(&'static str),
     File(usize),
 }
 
-fn parse_lines(input: &str) -> Vec<Line> {
+fn parse_lines(input: &'static str) -> Vec<Line> {
     let mut lines = Vec::new();
 
     for line in input.lines().skip(2) {
@@ -61,12 +61,12 @@ fn parse_lines(input: &str) -> Vec<Line> {
             let arg = if arg_str == ".." {
                 CdArg::Parent
             } else {
-                CdArg::Named(arg_str.to_string())
+                CdArg::Named(arg_str)
             };
 
             Line::Cd(arg)
         } else if first_part == "dir" {
-            Line::Directory(parts.next().unwrap().to_string())
+            Line::Directory(parts.next().unwrap())
         } else {
             let size = first_part.parse().unwrap();
             Line::File(size)
@@ -78,7 +78,7 @@ fn parse_lines(input: &str) -> Vec<Line> {
     lines
 }
 
-fn parse_commands(lines: Vec<Line>) -> FileSystem {
+fn parse_commands(lines: impl Iterator<Item = Line>) -> FileSystem {
     let mut filesystem = FileSystem::default();
     let mut directory_stack: Vec<DirectoryIndex> = Vec::new();
 
@@ -160,7 +160,7 @@ fn solve(filesystem: &FileSystem) -> (usize, usize) {
 
 fn main() {
     let lines = parse_lines(include_str!("input.txt"));
-    let filesystem = parse_commands(lines);
+    let filesystem = parse_commands(lines.into_iter());
 
     let (part1, part2) = solve(&filesystem);
     println!("Part 1: {part1}");
