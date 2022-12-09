@@ -8,3 +8,7 @@ target/
 
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
+
+# Eric Wastl prefers if we don't publish input files
+# https://twitter.com/ericwastl/status/1465805354214830081
+*.txt
