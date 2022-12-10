@@ -10,9 +10,7 @@ fn main() {
     };
 
     let mut signal_strengths_sum = 0;
-    let mut cycle_numbers = std::iter::successors(Some(20), |n: &i32| n.checked_add(40))
-        .take(6)
-        .peekable();
+    let mut cycle_numbers = (20..).step_by(40).take(6).peekable();
 
     for line in include_str!("input.txt").lines() {
         let mut line = line.split_whitespace();
