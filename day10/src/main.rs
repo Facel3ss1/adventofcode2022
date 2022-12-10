@@ -39,7 +39,7 @@ fn main() {
 
             let position = (cpu.cycle_count - 1) % 40;
             if (cpu.x - 1..=cpu.x + 1).contains(&position) {
-                print!("#");
+                print!("█");
             } else {
                 print!(" ");
             }
