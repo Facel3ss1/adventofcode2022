@@ -26,9 +26,11 @@ impl Monkey {
                 Op::Times => item *= rhs,
             }
 
-            // Addition and multiplication work in modular arithmetic
             if let Some(lcm) = lcm {
+                // Addition and multiplication work properly in modular arithmetic
                 item %= lcm;
+            } else {
+                item /= 3;
             }
 
             let throw_to = if item % self.divisible_by == 0 {
@@ -74,7 +76,7 @@ fn main() {
             let monkey = &mut monkeys_part1[i];
             let thrown_items = monkey.do_turn(None);
             for (throw_to, item) in thrown_items {
-                monkeys_part1[throw_to].items.push(item / 3);
+                monkeys_part1[throw_to].items.push(item);
             }
         }
     }
