@@ -12,10 +12,8 @@ struct Monkey {
 }
 
 impl Monkey {
-    fn do_turn(&mut self, lcm: Option<u64>) -> Vec<(usize, u64)> {
-        let mut thrown_items = Vec::new();
-
-        for mut item in self.items.drain(..) {
+    fn do_turn(&mut self) -> impl Iterator<Item = (usize, u64)> + '_ {
+        self.items.drain(..).map(|mut item| {
             let rhs = match self.rhs {
                 Rhs::Old => item,
                 Rhs::Const(num) => num,
@@ -26,13 +24,6 @@ impl Monkey {
                 Op::Times => item *= rhs,
             }
 
-            if let Some(lcm) = lcm {
-                // Addition and multiplication work properly in modular arithmetic
-                item %= lcm;
-            } else {
-                item /= 3;
-            }
-
             let throw_to = if item % self.divisible_by == 0 {
                 self.throw_if_true
             } else {
@@ -41,10 +32,8 @@ impl Monkey {
 
             self.num_inspected_items += 1;
 
-            thrown_items.push((throw_to, item));
-        }
-
-        thrown_items
+            (throw_to, item)
+        })
     }
 }
 
@@ -74,15 +63,15 @@ fn main() {
     for _ in 0..20 {
         for i in 0..monkeys_part1.len() {
             let monkey = &mut monkeys_part1[i];
-            let thrown_items = monkey.do_turn(None);
+            let thrown_items: Vec<(usize, u64)> = monkey.do_turn().collect();
             for (throw_to, item) in thrown_items {
-                monkeys_part1[throw_to].items.push(item);
+                monkeys_part1[throw_to].items.push(item / 3);
             }
         }
     }
 
     // All the divisors are different prime numbers, so the LCM is just the product of them
-    let lcm = monkeys_part2
+    let lcm: u64 = monkeys_part2
         .iter()
         .map(|monkey| monkey.divisible_by)
         .product();
@@ -90,9 +79,10 @@ fn main() {
     for _ in 0..10_000 {
         for i in 0..monkeys_part2.len() {
             let monkey = &mut monkeys_part2[i];
-            let thrown_items = monkey.do_turn(Some(lcm));
+            let thrown_items: Vec<(usize, u64)> = monkey.do_turn().collect();
             for (throw_to, item) in thrown_items {
-                monkeys_part2[throw_to].items.push(item);
+                // Multiplication and addition work correctly in modular arithmetic
+                monkeys_part2[throw_to].items.push(item % lcm);
             }
         }
     }
