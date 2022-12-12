@@ -14,14 +14,19 @@ fn neighbours(
     [left, right, up, down].into_iter().flatten()
 }
 
-fn manhattan_distance(position: (usize, usize), end_position: (usize, usize)) -> usize {
-    position.0.abs_diff(end_position.0) + position.1.abs_diff(end_position.1)
+fn height_difference(
+    grid: &Vec<Vec<u8>>,
+    position: (usize, usize),
+    end_position: (usize, usize),
+) -> usize {
+    (grid[end_position.0][end_position.1] - grid[position.0][position.1]) as usize
 }
 
 fn a_star(
     grid: &Vec<Vec<u8>>,
     start_position: (usize, usize),
     end_position: (usize, usize),
+    heuristic: impl Fn((usize, usize)) -> usize,
 ) -> usize {
     let width = grid[0].len();
     let height = grid.len();
@@ -51,7 +56,7 @@ fn a_star(
                         .any(|Reverse((_, other))| position == *other)
                     {
                         open_set.push(Reverse((
-                            distance.saturating_add(manhattan_distance(position, end_position)),
+                            distance.saturating_add(heuristic(position)),
                             position,
                         )));
                     }
@@ -101,8 +106,10 @@ fn main() {
     let start_position = start_position.unwrap();
     let end_position = end_position.unwrap();
 
-    let distance = a_star(&grid, start_position, end_position);
-    println!("Part 1: {distance}");
+    let distance = a_star(&grid, start_position, end_position, |position| {
+        height_difference(&grid, position, end_position)
+    });
+    println!("Part 1: {}", distance);
 
     let width = grid[0].len();
     let height = grid.len();
@@ -114,7 +121,11 @@ fn main() {
             neighbours(position, width, height)
                 .filter(|&(other_row, other_col)| grid[other_row][other_col] == 0)
         })
-        .map(|position| a_star(&grid, position, end_position))
+        .map(|position| {
+            a_star(&grid, position, end_position, |pos| {
+                height_difference(&grid, pos, end_position)
+            })
+        })
         .min()
         .unwrap();
     println!("Part 2: {fewest_steps}");
