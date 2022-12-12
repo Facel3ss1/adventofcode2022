@@ -102,6 +102,20 @@ fn main() {
     let end_position = end_position.unwrap();
 
     let distance = a_star(&grid, start_position, end_position);
-
     println!("Part 1: {distance}");
+
+    let width = grid[0].len();
+    let height = grid.len();
+
+    let fewest_steps = (0..height)
+        .flat_map(move |row| (0..width).map(move |col| (row, col)))
+        .filter(|&(row, col)| grid[row][col] == 1)
+        .flat_map(|position| {
+            neighbours(position, width, height)
+                .filter(|&(other_row, other_col)| grid[other_row][other_col] == 0)
+        })
+        .map(|position| a_star(&grid, position, end_position))
+        .min()
+        .unwrap();
+    println!("Part 2: {fewest_steps}");
 }
