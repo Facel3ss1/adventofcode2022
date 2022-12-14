@@ -1,4 +1,6 @@
-fn parse_point(input: &str) -> (usize, usize) {
+use std::collections::HashSet;
+
+fn parse_point(input: &str) -> (i32, i32) {
     input
         .split_once(',')
         .map(|(left, right)| (left.parse().unwrap(), right.parse().unwrap()))
@@ -6,7 +8,7 @@ fn parse_point(input: &str) -> (usize, usize) {
 }
 
 fn main() {
-    let mut grid: Vec<Vec<bool>> = vec![vec![false; 1000]; 1000];
+    let mut grid: HashSet<(i32, i32)> = HashSet::new();
 
     for line in include_str!("input.txt").lines() {
         let mut points = line.split(" -> ");
@@ -17,19 +19,19 @@ fn main() {
 
             if current_point.1 == prev_point.1 {
                 for col in prev_point.0..=current_point.0 {
-                    grid[current_point.1][col] = true;
+                    grid.insert((col, current_point.1));
                 }
 
                 for col in current_point.0..=prev_point.0 {
-                    grid[current_point.1][col] = true;
+                    grid.insert((col, current_point.1));
                 }
             } else if current_point.0 == prev_point.0 {
                 for row in prev_point.1..=current_point.1 {
-                    grid[row][current_point.0] = true;
+                    grid.insert((current_point.0, row));
                 }
 
                 for row in current_point.1..=prev_point.1 {
-                    grid[row][current_point.0] = true;
+                    grid.insert((current_point.0, row));
                 }
             }
 
@@ -37,36 +39,39 @@ fn main() {
         }
     }
 
-    let mut num_sand = 0;
+    let height = grid.iter().map(|pos| pos.1).max().unwrap();
+
+    for i in 0..750 {
+        grid.insert((i, height + 2));
+    }
+
+    let mut num_sand_part2 = 0;
+    let mut num_sand_part1 = 0;
     'outer: loop {
         let mut sand = (500, 0);
 
         loop {
-            if sand.1 == grid.len() - 1 {
-                break 'outer;
-            } else if !grid[sand.1 + 1][sand.0] {
+            if sand.1 == height && num_sand_part1 == 0 {
+                num_sand_part1 = num_sand_part2;
+            } else if !grid.contains(&(sand.0, sand.1 + 1)) {
                 sand.1 += 1;
-            } else if !sand
-                .0
-                .checked_sub(1)
-                .map(|col| grid[sand.1 + 1][col])
-                .unwrap_or(true)
-            {
+            } else if !grid.contains(&(sand.0 - 1, sand.1 + 1)) {
                 sand.1 += 1;
                 sand.0 -= 1;
-            } else if !(sand.0 + 1 < grid[0].len())
-                .then(|| grid[sand.1 + 1][sand.0 + 1])
-                .unwrap_or(true)
-            {
+            } else if !grid.contains(&(sand.0 + 1, sand.1 + 1)) {
                 sand.1 += 1;
                 sand.0 += 1;
-            } else {
-                grid[sand.1][sand.0] = true;
-                num_sand += 1;
+            } else if !(sand.0 == 500 && sand.1 == 0) {
+                grid.insert(sand);
+                num_sand_part2 += 1;
                 break;
+            } else {
+                num_sand_part2 += 1;
+                break 'outer;
             }
         }
     }
 
-    println!("Part 1: {num_sand}");
+    println!("Part 1: {num_sand_part1}");
+    println!("Part 2: {num_sand_part2}");
 }
