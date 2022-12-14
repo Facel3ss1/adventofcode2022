@@ -2,53 +2,75 @@ use std::cmp::Ordering;
 
 mod parse;
 
-#[derive(PartialEq, Eq)]
-enum Expr {
+#[derive(PartialEq, Eq, Clone)]
+enum Packet {
     Number(u32),
-    List(Vec<Expr>),
+    List(Vec<Packet>),
 }
 
-impl Expr {
-    fn singleton(number: u32) -> Expr {
-        Expr::List(vec![Expr::Number(number)])
+impl Packet {
+    fn singleton(packet: Packet) -> Packet {
+        Packet::List(vec![packet])
     }
 }
 
-impl PartialOrd for Expr {
+impl PartialOrd for Packet {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for Expr {
+impl Ord for Packet {
     fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
-            (Expr::Number(num), Expr::Number(other_num)) => num.cmp(other_num),
-            (Expr::List(list), Expr::List(other_list)) => list
+            (Packet::Number(num), Packet::Number(other_num)) => num.cmp(other_num),
+            (Packet::List(list), Packet::List(other_list)) => list
                 .iter()
                 .zip(other_list.iter())
                 .map(|(item, other_item)| item.cmp(other_item))
                 .chain(std::iter::once(list.len().cmp(&other_list.len())))
                 .find(|ord| ord.is_ne())
                 .unwrap_or(Ordering::Equal),
-            (Expr::Number(num), other_list) => Expr::singleton(*num).cmp(other_list),
-            (list, Expr::Number(other_num)) => list.cmp(&Expr::singleton(*other_num)),
+            (Packet::Number(num), other_list) => {
+                Packet::singleton(Packet::Number(*num)).cmp(other_list)
+            }
+            (list, Packet::Number(other_num)) => {
+                list.cmp(&Packet::singleton(Packet::Number(*other_num)))
+            }
         }
     }
 }
 
 fn main() {
-    let pairs = include_str!("input.txt").split("\n\n");
+    let mut packets: Vec<Packet> = include_str!("input.txt")
+        .lines()
+        .filter(|line| !line.is_empty())
+        .map(|line| line.parse().unwrap())
+        .collect();
 
-    let indices_sum: usize = pairs
-        .map(|pair| -> (Expr, Expr) {
-            let (left, right) = pair.split_once('\n').unwrap();
-            (left.parse().unwrap(), right.parse().unwrap())
-        })
-        .map(|(left, right)| left.cmp(&right))
+    let indices_sum: usize = packets
+        .chunks_exact(2)
+        .map(|chunk| (&chunk[0], &chunk[1]))
+        .map(|(left, right)| left.cmp(right))
         .enumerate()
         .filter_map(|(i, ord)| ord.is_le().then_some(i + 1))
         .sum();
 
+    let divider_packet2 = Packet::singleton(Packet::singleton(Packet::Number(2)));
+    let divider_packet6 = Packet::singleton(Packet::singleton(Packet::Number(6)));
+
+    packets.push(divider_packet2.clone());
+    packets.push(divider_packet6.clone());
+
+    packets.sort_unstable();
+
+    let decoder_key = packets
+        .iter()
+        .position(|p| p == &divider_packet2)
+        .zip(packets.iter().position(|p| p == &divider_packet6))
+        .map(|(p1, p2)| (p1 + 1) * (p2 + 1))
+        .unwrap();
+
     println!("Part 1: {indices_sum}");
+    println!("Part 2: {decoder_key}");
 }

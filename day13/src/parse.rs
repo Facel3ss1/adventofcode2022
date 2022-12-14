@@ -1,23 +1,23 @@
 use std::str::FromStr;
 
-use crate::Expr;
+use crate::Packet;
 
-impl FromStr for Expr {
+impl FromStr for Packet {
     type Err = ();
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
-        Ok(parse_expr(input).0)
+        Ok(parse_packet(input).0)
     }
 }
 
-fn parse_expr(input: &str) -> (Expr, &str) {
+fn parse_packet(input: &str) -> (Packet, &str) {
     match input.chars().next().unwrap() {
         '[' => parse_list(&input[1..]),
         _ => parse_number(input),
     }
 }
 
-fn parse_list(mut input: &str) -> (Expr, &str) {
+fn parse_list(mut input: &str) -> (Packet, &str) {
     let mut list = Vec::new();
 
     loop {
@@ -25,20 +25,20 @@ fn parse_list(mut input: &str) -> (Expr, &str) {
             ']' => break,
             ',' => input = &input[1..],
             _ => {
-                let (expr, rest) = parse_expr(input);
-                list.push(expr);
+                let (packet, rest) = parse_packet(input);
+                list.push(packet);
                 input = rest;
             }
         }
     }
 
-    (Expr::List(list), &input[1..])
+    (Packet::List(list), &input[1..])
 }
 
-fn parse_number(input: &str) -> (Expr, &str) {
+fn parse_number(input: &str) -> (Packet, &str) {
     let (number, rest) = input
         .find(|c| c == ',' || c == ']')
         .map(|i| input.split_at(i))
         .unwrap_or((input, ""));
-    (Expr::Number(number.parse().unwrap()), rest)
+    (Packet::Number(number.parse().unwrap()), rest)
 }
