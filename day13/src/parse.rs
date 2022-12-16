@@ -12,7 +12,7 @@ impl FromStr for Packet {
 
 fn parse_packet(input: &str) -> (Packet, &str) {
     match input.chars().next().unwrap() {
-        '[' => parse_list(&input[1..]),
+        '[' => parse_list(input),
         _ => parse_number(input),
     }
 }
@@ -20,6 +20,7 @@ fn parse_packet(input: &str) -> (Packet, &str) {
 fn parse_list(mut input: &str) -> (Packet, &str) {
     let mut list = Vec::new();
 
+    input = input.strip_prefix('[').unwrap();
     loop {
         match input.chars().next().unwrap() {
             ']' => break,
@@ -37,7 +38,7 @@ fn parse_list(mut input: &str) -> (Packet, &str) {
 
 fn parse_number(input: &str) -> (Packet, &str) {
     let (number, rest) = input
-        .find(|c| c == ',' || c == ']')
+        .find(|c: char| !c.is_ascii_digit())
         .map(|i| input.split_at(i))
         .unwrap_or((input, ""));
     (Packet::Number(number.parse().unwrap()), rest)
