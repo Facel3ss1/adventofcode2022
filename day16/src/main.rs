@@ -5,15 +5,15 @@ use crate::parse::parse_graph;
 mod parse;
 
 // Remove all the valves (except the starting valve) with a flow rate of zero
-fn simplify_graph(graph: &mut HashMap<u16, HashMap<u16, u32>>, flow_rates: &HashMap<u16, u32>) {
-    let valves_to_remove: Vec<u16> = graph
+fn simplify_graph(graph: &mut HashMap<u64, HashMap<u64, u32>>, flow_rates: &HashMap<u64, u32>) {
+    let valves_to_remove: Vec<u64> = graph
         .keys()
-        .filter(|&num| *num != 0 && flow_rates[num] == 0)
         .copied()
+        .filter(|&num| num != 1 && flow_rates[&num] == 0)
         .collect();
 
     for valve_num in valves_to_remove {
-        let neighbours: Vec<u16> = graph[&valve_num].keys().copied().collect();
+        let neighbours: Vec<u64> = graph[&valve_num].keys().copied().collect();
 
         for neighbour in neighbours.iter().copied() {
             let distance_to_neighbour = graph[&valve_num][&neighbour];
@@ -39,7 +39,7 @@ fn simplify_graph(graph: &mut HashMap<u16, HashMap<u16, u32>>, flow_rates: &Hash
 }
 
 // Return the minimum distances between every two nodes in the graph
-fn floyd_warshall(graph: &HashMap<u16, HashMap<u16, u32>>) -> HashMap<(u16, u16), u32> {
+fn floyd_warshall(graph: &HashMap<u64, HashMap<u64, u32>>) -> HashMap<(u64, u64), u32> {
     let mut shortest_paths = HashMap::new();
 
     for (&valve_num, neighbours) in graph.iter() {
@@ -72,61 +72,70 @@ fn floyd_warshall(graph: &HashMap<u16, HashMap<u16, u32>>) -> HashMap<(u16, u16)
 
 #[derive(Clone)]
 struct State {
-    valves_opened: Vec<u16>,
+    current_valve: u64,
+    valves_opened: u64,
     minute: u32,
     pressure_released: u32,
 }
 
-fn main() {
-    let (mut graph, flow_rates) = parse_graph(include_str!("input.txt"));
-    simplify_graph(&mut graph, &flow_rates);
-    let distances = floyd_warshall(&graph);
-    let valves: Vec<u16> = graph.keys().copied().filter(|&valve| valve != 0).collect();
+fn depth_first_search(
+    distances: &HashMap<(u64, u64), u32>,
+    flow_rates: &HashMap<u64, u32>,
+    total_minutes: u32,
+) -> HashMap<u64, u32> {
+    let valves: Vec<u64> = flow_rates
+        .keys()
+        .copied()
+        .filter(|&valve| valve != 1)
+        .filter(|&valve| distances.contains_key(&(1, valve)))
+        .collect();
 
     let mut stack: Vec<State> = Vec::new();
-    let mut max_pressure = 0;
+    let mut max_pressures = HashMap::new();
 
     stack.extend(
         valves
             .iter()
             .copied()
             .map(|valve| {
-                let minute = distances[&(0, valve)] + 1;
-                let pressure_released = (30 - minute) * flow_rates[&valve];
+                let minute = distances[&(1, valve)] + 1;
+                let pressure_released = (total_minutes - minute) * flow_rates[&valve];
                 State {
-                    valves_opened: vec![valve],
+                    current_valve: valve,
+                    valves_opened: valve,
                     minute,
                     pressure_released,
                 }
             })
-            .filter(|state| state.minute <= 30),
+            .filter(|state| state.minute <= total_minutes),
     );
 
     while let Some(current_state) = stack.pop() {
-        if current_state.pressure_released > max_pressure {
-            max_pressure = current_state.pressure_released
+        let pressure_entry = max_pressures
+            .entry(current_state.valves_opened)
+            .or_insert(0);
+        if current_state.pressure_released > *pressure_entry {
+            *pressure_entry = current_state.pressure_released
         }
 
         stack.extend(
             valves
                 .iter()
                 .copied()
-                .filter(|&valve| {
-                    !current_state
-                        .valves_opened
-                        .iter()
-                        .any(|&opened_valve| opened_valve == valve)
-                })
+                .filter(|&valve| current_state.valves_opened & valve != valve)
                 .filter_map(|next_valve| {
-                    let current_valve = current_state.valves_opened.last().copied().unwrap();
-                    let minute = current_state.minute + distances[&(current_valve, next_valve)] + 1;
+                    let minute = current_state.minute
+                        + distances[&(current_state.current_valve, next_valve)]
+                        + 1;
 
-                    (minute <= 30).then(|| {
+                    (minute <= total_minutes).then(|| {
                         let mut next_state = current_state.clone();
 
+                        next_state.current_valve = next_valve;
+                        next_state.valves_opened |= next_valve;
                         next_state.minute = minute;
-                        next_state.pressure_released += (30 - minute) * flow_rates[&next_valve];
-                        next_state.valves_opened.push(next_valve);
+                        next_state.pressure_released +=
+                            (total_minutes - minute) * flow_rates[&next_valve];
 
                         next_state
                     })
@@ -134,5 +143,32 @@ fn main() {
         );
     }
 
-    println!("Part 1: {}", max_pressure);
+    max_pressures
+}
+
+fn main() {
+    let (mut graph, flow_rates) = parse_graph(include_str!("input.txt"));
+    simplify_graph(&mut graph, &flow_rates);
+    let distances = floyd_warshall(&graph);
+
+    let part1 = depth_first_search(&distances, &flow_rates, 30);
+    println!("Part 1: {}", part1.into_values().max().unwrap());
+
+    let part2 = depth_first_search(&distances, &flow_rates, 26);
+    let part2 = part2
+        .iter()
+        .map(|(&valves_opened, &pressure_released)| (valves_opened, pressure_released))
+        .flat_map(|me| {
+            part2.iter().map(
+                move |(&elephant_valves_opened, &elephant_pressure_released)| {
+                    (me, (elephant_valves_opened, elephant_pressure_released))
+                },
+            )
+        })
+        .filter(|&(me, elephant)| me.0 & elephant.0 == 0)
+        .map(|(me, elephant)| me.1 + elephant.1)
+        .max()
+        .unwrap();
+
+    println!("Part 2: {part2}");
 }
